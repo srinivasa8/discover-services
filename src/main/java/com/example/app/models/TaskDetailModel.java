@@ -1,0 +1,28 @@
+package com.example.app.models;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+
+@Getter
+@Setter
+@Entity
+@Table(schema = "dbsd", name = "TASK_DETAILS")
+public class TaskDetailModel {
+
+    @Id
+    @Column(name = "JOB_ID")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int jobId;
+
+    @Column(name = "TASK")
+    private String task;
+
+    @Column(name = "STATUS")
+    private String status;
+
+    @Column(name = "FAILURE_DETAILS")
+    private String failureDetails;
+
+}
