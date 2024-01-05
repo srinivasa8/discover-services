@@ -12,6 +12,7 @@ import com.example.app.repositories.TaskDetailModelRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import software.amazon.awssdk.services.ec2.model.Instance;
 import software.amazon.awssdk.services.s3.model.Bucket;
@@ -32,26 +33,35 @@ public class DiscoverServiceImpl implements DiscoverService{
     private S3BucketFileDetailModelRepository s3BucketFileDetailModelRepository;
 
     @Autowired
-    DiscoverEc2InstancesService discoverEc2InstancesService;
+    private DiscoverEc2InstancesService discoverEc2InstancesService;
 
     @Autowired
-    DiscoverS3BucketsService discoverS3BucketsService;
+    private DiscoverS3BucketsService discoverS3BucketsService;
 
     @Autowired
-    EC2InstanceDetailModelRepository ec2InstanceDetailModelRepository;
+    private EC2InstanceDetailModelRepository ec2InstanceDetailModelRepository;
 
     @Autowired
-    S3BucketDetailModelRepository s3BucketDetailModelRepository;
+    private S3BucketDetailModelRepository s3BucketDetailModelRepository;
 
     @Autowired
-    TaskDetailModelRepository taskDetailModelRepository;
+    private TaskDetailModelRepository taskDetailModelRepository;
 
     @Autowired
-    Executor executor;
+    private Executor executor;
 
     @Override
     public int discoverServices(List<String> services) {
         try {
+            if(CollectionUtils.isEmpty(services)){
+                log.info("Input service list is empty!");
+                //trow new Exception("input empty!");
+                return 0;
+            }
+            if(!services.contains("EC2") && !services.contains("S3")){
+                log.info("Invalid input!");
+                return 0;
+            }
             int jobId = generateNewTaskRecord("DiscoverServices");
             for (String service : services) {
                 if (service.equalsIgnoreCase("EC2")) {
@@ -125,19 +135,35 @@ public class DiscoverServiceImpl implements DiscoverService{
             log.info("Task running in background with id : {}", jobId);
             return jobId;
         } catch (Exception e) {
-            log.error("Task happened during getS3BucketObjects for the bucket : {} ", bucketName, e);
+            log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
         }
         return 0;
     }
 
     @Override
     public int getS3BucketObjectCount(String bucketName) {
+        log.info("Started getS3BucketObjectCount for the bucketName : {} ",bucketName);
+        try {
+            return s3BucketFileDetailModelRepository.countByBucketName(bucketName);
+            //return count;
+        } catch (Exception e) {
+            log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+        }
         return 0;
     }
 
     @Override
     public List<String> getS3BucketObjectlike(String bucketName, String pattern) {
-        return null;
+        List<String> fileNameList = new ArrayList<>();
+        log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
+        try {
+            List<S3BucketFileDetailModel> s3BucketFileDetailModelList = s3BucketFileDetailModelRepository.findByBucketNameAndFileNameLike(bucketName, pattern);
+            fileNameList = s3BucketFileDetailModelList.stream().map(s -> s.getFileName()).collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+        }
+        log.info("Files found for bucketName : {} and matching pattern : {} are : {}", bucketName,pattern,fileNameList);
+        return fileNameList;
     }
 
     private void processEC2Discovery(int jobId){
@@ -174,7 +200,7 @@ public class DiscoverServiceImpl implements DiscoverService{
         }
     }
 
-    public void processS3BucketDiscovery(int jobId){
+    private void processS3BucketDiscovery(int jobId){
         String status = JobStatus.Failed.toString();
         String failureDetails = null;
         try {
@@ -191,7 +217,7 @@ public class DiscoverServiceImpl implements DiscoverService{
         }
     }
 
-    public void processGetS3Objects(int jobId, String bucketName){
+    private void processGetS3Objects(int jobId, String bucketName){
         String status = JobStatus.Failed.toString();
         String failureDetails = null;
         try {
@@ -202,6 +228,7 @@ public class DiscoverServiceImpl implements DiscoverService{
             log.info("processGetS3Objects task completed in background with job id : {} ", jobId);
         } catch (Exception e){
             log.error("Exception occurred while processGetS3Objects for job id : {} ", jobId, e);
+            log.error("-->{}",e.getMessage());
             failureDetails = "processGetS3Objects failed with error: " + e.getMessage();
         } finally {
             saveTaskDetail(jobId, status, failureDetails);
@@ -209,27 +236,34 @@ public class DiscoverServiceImpl implements DiscoverService{
     }
 
     private void saveS3BucketObjectDetails(List<S3Object> s3ObjectList, String bucketName) {
-        for(S3Object s3Object : s3ObjectList){
-            //s3Object.lastModified();
-           // boolean isBucketDetailExist = s3BucketDetailModelRepository.existsByBucketName(bucket.name());
-            //if(!isBucketDetailExist){
-                S3BucketFileDetailModel  s3BucketFileDetailModel = new S3BucketFileDetailModel();
-                s3BucketFileDetailModel.setBucketName(bucketName);
-               // log.info("--->"+s3Object.key());
+        if(!CollectionUtils.isEmpty(s3ObjectList)){
+            for(S3Object s3Object : s3ObjectList){
                 String[] fileData = s3Object.key().split("/");
-                s3BucketFileDetailModel.setFileName(fileData[1]);
-                s3BucketFileDetailModel.setFolderName(fileData[0]);
-                s3BucketFileDetailModel.setSize(s3Object.size());
-                s3BucketFileDetailModel.setOwnerId(s3Object.owner().id());
-                s3BucketFileDetailModel.setLastModifiedDate(Date.from(s3Object.lastModified()));
-               // s3BucketFileDetailModelRepository.exists(s3BucketFileDetailModel);
-                s3BucketFileDetailModelRepository.save(s3BucketFileDetailModel);
-                log.info("Inserted a record for s3 file with name : {} ", fileData[1]);
-//            } else{
-//                log.info("S3 bucket already exist with name : {}, is already present in DB, So skipping inserting it!", bucket.name());
-//            }
+                // Checking for duplicate record based on bucketName, folderName and fileName
+                Optional<S3BucketFileDetailModel> s3BucketFileDetailModelOptional = s3BucketFileDetailModelRepository.findByBucketNameAndFolderNameAndFileName(bucketName, fileData[0],fileData[1]);
+                if(!s3BucketFileDetailModelOptional.isPresent()){
+                    S3BucketFileDetailModel  s3BucketFileDetailModel = new S3BucketFileDetailModel();
+                    s3BucketFileDetailModel.setBucketName(bucketName);
+                    s3BucketFileDetailModel.setFileName(fileData[1]);
+                    s3BucketFileDetailModel.setFolderName(fileData[0]);
+                    s3BucketFileDetailModel.setSize(s3Object.size());
+                    s3BucketFileDetailModel.setOwnerId(s3Object.owner().id());
+                    s3BucketFileDetailModel.setLastModifiedDate(Date.from(s3Object.lastModified()));
+                    s3BucketFileDetailModelRepository.save(s3BucketFileDetailModel);
+                    log.info("Inserted a record for s3 file with name : {} for bucketName : {} ", fileData[1], bucketName);
+                } else{
+                    // Updating size, ownerId, lastModifiedDate as these data may change over the time.
+                    S3BucketFileDetailModel  s3BucketFileDetailModel = s3BucketFileDetailModelOptional.get();
+                    s3BucketFileDetailModel.setSize(s3Object.size());
+                    s3BucketFileDetailModel.setOwnerId(s3Object.owner().id());
+                    s3BucketFileDetailModel.setLastModifiedDate(Date.from(s3Object.lastModified()));
+                    s3BucketFileDetailModelRepository.save(s3BucketFileDetailModel);
+                    log.info("Updated a record for s3 file with name : {} for bucketName : {}", fileData[1], bucketName);
+                }
+            }
+        } else{
+            log.info("No files found for bucketName: {}", bucketName);
         }
-
     }
 
     private void saveS3BucketDetails(List<Bucket> bucketList) {
@@ -241,7 +275,7 @@ public class DiscoverServiceImpl implements DiscoverService{
                 s3BucketDetailModelRepository.save(s3BucketDetailModel);
                 log.info("Inserted a record for s3 bucket with name : {} ", bucket.name());
             } else{
-                log.info("S3 bucket already exist with name : {}, is already present in DB, So skipping inserting it!", bucket.name());
+                log.info("S3 bucket ith name : {}, is already present in DB, So skipping inserting it!", bucket.name());
             }
         }
 
@@ -253,11 +287,11 @@ public class DiscoverServiceImpl implements DiscoverService{
             TaskDetailModel taskModel = taskModelOptional.get();
             taskModel.setStatus(status);
             String updatedFailureDetails = StringUtils.hasLength(taskModel.getFailureDetails()) ?
-                    (taskModel.getFailureDetails() + " and " + failureDetails) : taskModel.getFailureDetails();
+                    (taskModel.getFailureDetails() + " and " + failureDetails) : failureDetails;
             taskModel.setFailureDetails(updatedFailureDetails);
             taskDetailModelRepository.save(taskModel);
         } else{
-            log.info("No Job found with given jobId: {}", jobId);
+            log.info("No job found with given jobId: {}", jobId);
         }
     }
 
@@ -266,7 +300,6 @@ public class DiscoverServiceImpl implements DiscoverService{
         taskModel.setTask(task);
         taskModel.setStatus(JobStatus.inProgress.toString());
         taskDetailModelRepository.save(taskModel);
-        System.out.println("id:"+taskModel.getJobId());
         return taskModel.getJobId();
     }
 }

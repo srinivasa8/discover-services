@@ -28,7 +28,7 @@ public class DiscoverS3BucketsService {
     }
 
     void initializeS3Client(){
-        Region region = Region.AP_SOUTH_1; //AP_SOUTH_1;
+        Region region = Region.AP_SOUTH_1;
         AwsBasicCredentials awsCreds = AwsBasicCredentials.create(env.getProperty("application.aws.accesskey"),
                 env.getProperty("application.aws.secretkey"));
         this.s3Client = S3Client.builder()
@@ -37,33 +37,31 @@ public class DiscoverS3BucketsService {
                 .build();
     }
 
-    public List<Bucket> getAllS3Buckets() {
+    public List<Bucket> getAllS3Buckets() throws S3Exception {
         List<Bucket> bucketList = new ArrayList<>();
         try {
             ListBucketsResponse response = s3Client.listBuckets();
             bucketList = response.buckets();
             return bucketList;
         } catch (S3Exception e) {
-            log.error(e.awsErrorDetails().errorMessage());
+            log.error("Exception occurred during etAllS3Buckets with error code : {} ", e.awsErrorDetails().errorCode(), e);
+            throw e;
         }
-        return bucketList;
     }
 
-    public List<S3Object> getS3BucketObjectsByBucket(String bucketName) {
+    public List<S3Object> getS3BucketObjectsByBucket(String bucketName) throws S3Exception {
         List<S3Object> s3ObjectList = new ArrayList<>();
         try {
             ListObjectsRequest listObjects = ListObjectsRequest
                     .builder()
                     .bucket(bucketName)
                     .build();
-
             ListObjectsResponse res = s3Client.listObjects(listObjects);
             s3ObjectList = res.contents();
             return s3ObjectList;
-
         } catch (S3Exception e) {
-            log.error(e.awsErrorDetails().errorMessage());
+            log.error("Exception occurred during getS3BucketObjectsByBucket with error code : {} ", e.awsErrorDetails().errorCode(), e);
+            throw e;
         }
-        return s3ObjectList;
     }
 }

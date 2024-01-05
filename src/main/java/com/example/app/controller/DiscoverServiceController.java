@@ -1,5 +1,6 @@
 package com.example.app.controller;
 
+import com.example.app.common.Request;
 import com.example.app.service.DiscoverService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -41,5 +42,10 @@ public class DiscoverServiceController {
     @GetMapping("/getS3BucketObjectlike")
     public List<String> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) {
         return discoverService.getS3BucketObjectlike(bucketName, pattern);
+    }
+
+    @PostMapping("/getS3BucketObjectlikeV2")
+    public List<String> getS3BucketObjectlikeV2(@RequestBody Request request) {
+        return discoverService.getS3BucketObjectlike(request.getBucketName(), request.getPattern());
     }
 }

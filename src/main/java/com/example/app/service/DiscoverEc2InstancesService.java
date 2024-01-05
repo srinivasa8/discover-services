@@ -42,7 +42,7 @@ public class DiscoverEc2InstancesService {
                 .build();
     }
 
-    public List<Instance> getAllEC2Instances() {
+    public List<Instance> getAllEC2Instances() throws Ec2Exception {
         List<Instance> instanceList = new ArrayList<>();
         try {
             DescribeInstancesRequest request = DescribeInstancesRequest.builder().build();
@@ -50,10 +50,10 @@ public class DiscoverEc2InstancesService {
             for (Reservation reservation : response.reservations()) {
                 instanceList.addAll(reservation.instances());
             }
-            log.info("Instances found : {}", instanceList);
+            log.info("EC2 instances found : {}", instanceList);
             return instanceList;
         } catch (Ec2Exception e) {
-            log.error("Exception occurred while calling getAllEC2Instances with error code : {} ", e.awsErrorDetails().errorCode(), e);
+            log.error("Exception occurred during getAllEC2Instances with error code : {} ", e.awsErrorDetails().errorCode(), e);
             throw e;
         }
     }
