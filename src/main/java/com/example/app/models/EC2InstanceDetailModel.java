@@ -1,15 +1,24 @@
 package com.example.app.models;
 
 
-import jakarta.persistence.*;
-import lombok.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.RequiredArgsConstructor;
+
+import java.util.Date;
 
 @Entity
 @Getter
 @Setter
-//@Builder
 @RequiredArgsConstructor
-//@NoArgsConstructor
 @Table(schema = "dbsd", name = "EC2_INSTANCE_DETAILS")
 public class EC2InstanceDetailModel {
 
@@ -33,4 +42,7 @@ public class EC2InstanceDetailModel {
     @Column(name ="MONITORING_STATE")
     private String monitoringState;
 
+    @Column(name ="LAUNCH_DATE")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date launchDate;
 }
