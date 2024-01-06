@@ -172,28 +172,45 @@ public class DiscoverServiceImpl implements DiscoverService{
             throw new InvalidInputException("Given bucketName is empty! Please provide an valid bucket name.");
         }
         try {
+            validateBucketName(bucketName);
             return s3BucketFileDetailModelRepository.countByBucketName(bucketName);
-        } catch (Exception e) {
+        }
+        catch (InvalidInputException e) {
+            log.error("InvalidInputException happened during getS3BucketObjectCount for the bucketName : {} ", bucketName, e);
+            throw e;
+        }
+        catch (Exception e) {
             log.error("Exception happened during getS3BucketObjectCount for the bucketName : {} ", bucketName, e);
             throw new Exception("An error occurred while getting object count for bucketName : "
                     + bucketName + ", Please try again after sometime!");
         }
     }
 
+    void validateBucketName(String bucketName) throws InvalidInputException {
+        boolean isRequestedBucketPresent = s3BucketDetailModelRepository.existsByBucketName(bucketName);
+        if(!isRequestedBucketPresent){
+            throw new InvalidInputException("No S3 bucket present with the name : " + bucketName);
+        }
+    }
+
     @Override
-    public List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception {
-        log.info("Started getS3BucketObjectlike for the bucketName : {} with pattern : {} ", bucketName, pattern);
+    public List<String> getS3BucketObjectLike(String bucketName, String pattern) throws Exception {
+        log.info("Started getS3BucketObjectLike for the bucketName : {} with pattern : {} ", bucketName, pattern);
         if (!StringUtils.hasLength(bucketName) || bucketName.isBlank() || !StringUtils.hasLength(pattern) || pattern.isBlank()) {
             throw new InvalidInputException("Given bucketName or pattern is empty! Please provide an valid bucket name and pattern.");
         }
         List<String> fileNameList = new ArrayList<>();
         try {
+            validateBucketName(bucketName);
             List<S3BucketFileDetailModel> s3BucketFileDetailModelList = s3BucketFileDetailModelRepository.findByBucketNameAndFileNameLike(bucketName, pattern);
             fileNameList = s3BucketFileDetailModelList.stream().map(s -> s.getFileName()).collect(Collectors.toList());
             log.info("Files found for bucketName : {} and matching pattern : {} are : {}", bucketName, pattern, fileNameList);
             return fileNameList;
+        } catch (InvalidInputException e) {
+            log.error("InvalidInputException happened during getS3BucketObjectLike for the bucketName : {} with pattern : {}", bucketName, pattern, e);
+            throw e;
         } catch (Exception e) {
-            log.error("Exception happened during getS3BucketObjectlike for the bucketName : {} with pattern : {}", bucketName, pattern, e);
+            log.error("Exception happened during getS3BucketObjectLike for the bucketName : {} with pattern : {}", bucketName, pattern, e);
             throw new Exception("An error occurred while getting objects for bucketName : "
                     + bucketName + " with pattern : " + pattern + ", Please try again after sometime!");
         }

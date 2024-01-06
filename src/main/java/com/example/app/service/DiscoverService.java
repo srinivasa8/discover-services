@@ -14,5 +14,5 @@ public interface DiscoverService {
 
     int getS3BucketObjectCount(String bucketName) throws Exception;
 
-    List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception;
+    List<String> getS3BucketObjectLike(String bucketName, String pattern) throws Exception;
 }

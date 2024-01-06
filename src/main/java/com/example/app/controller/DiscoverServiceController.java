@@ -46,16 +46,10 @@ public class DiscoverServiceController {
         return new ResponseEntity<>(count, HttpStatus.OK);
     }
 
-    @GetMapping("/getS3BucketObjectlike")
-    public ResponseEntity<List<String>> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) throws Exception {
-        List<String> s3objectList = discoverService.getS3BucketObjectlike(bucketName, pattern);
-        return new ResponseEntity<>(s3objectList, HttpStatus.OK);
-    }
-
-    @PostMapping("/getS3BucketObjectlikeV2")
-    public ResponseEntity<List<String>> getS3BucketObjectlikeV2(@RequestBody Request request) throws Exception {
-        List<String> s3objectList = discoverService.getS3BucketObjectlike(request.getBucketName(), request.getPattern());
-        return new ResponseEntity<>(s3objectList, HttpStatus.OK);
+    @PostMapping("/getS3BucketObjectLike")
+    public ResponseEntity<List<String>> getS3BucketObjectLike(@RequestBody Request request) throws Exception {
+        List<String> s3ObjectList = discoverService.getS3BucketObjectLike(request.getBucketName(), request.getPattern());
+        return new ResponseEntity<>(s3ObjectList, HttpStatus.OK);
     }
 
 }
