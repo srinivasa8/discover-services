@@ -19,7 +19,7 @@ This Spring Boot application has been developed as part of an assignment with th
 1. Clone or download the Spring Boot project from the repository (if not already available).    
    ```bash
    git clone https://github.com/srinivasa8/discover-services.git
-2.	Please run the below database create scripts before proceeding to next step
+2.	Please run the scripts present in below file before proceeding to next step.
       ```bash
       https://github.com/srinivasa8/SQL_Scripts/blob/main/SCRIPTS_FOR_DISCOVER_SERVICES_APPLICATION_ASSIGNMENT.sql
 3.	Open the project using an IDE like IntelliJ IDEA, Eclipse, or Spring Tool Suite.
@@ -36,7 +36,7 @@ This Spring Boot application has been developed as part of an assignment with th
       ```
 
 5.	Using the terminal or within your IDE, execute mvn clean install to build the project and ensure the build completes successfully without any errors.
-6.	Locate the main class (annotated with @SpringBootApplication) and Right-click on the main class and select "Run" to start the application.
+6.	Locate the main class (annotated with @SpringBootApplication) and right-click on the main class and select "Run" to start the application.
 7.	Check the console output for application logs and startup messages and application should start and display a message indicating that the server has started.
       If the application started successfully, you will see the below messages
        ```bash
@@ -45,5 +45,5 @@ This Spring Boot application has been developed as part of an assignment with th
       ```
 8.	Once the application is running, access defined endpoints by opening a web browser or using tools like Postman or swagger and navigating to http://localhost:8080 followed by the endpoint path.
       ```bash 
-      E.g.: API URL : http://localhost:8080/api/getDiscoveryResult?service=S3
-9. For more information on the APIs, After running the application, Please access the [swagger documentation here](http://localhost:8080/swagger-ui/index.html).
+      E.g. http://localhost:8080/api/getDiscoveryResult?service=S3
+9. For more information on the APIs, after running the application, Please access the [swagger documentation here](http://localhost:8080/swagger-ui/index.html).
