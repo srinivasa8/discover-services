@@ -1,12 +1,14 @@
 package com.example.app.common;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 
 @Getter
 @Setter
 @RequiredArgsConstructor
-//@NoArgsConstructor
 public class ErrorResponse {
-    public String error;
-    public String errorMessage;
+    private String status;
+    private String error;
+    private String message;
 }

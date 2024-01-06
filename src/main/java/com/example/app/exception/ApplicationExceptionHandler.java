@@ -1,7 +1,6 @@
-package com.example.app.controller;
+package com.example.app.exception;
 
 import com.example.app.common.ErrorResponse;
-import com.example.app.controller.exception.InvalidInputException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -14,23 +13,29 @@ import static com.example.app.common.Constants.*;
 public class ApplicationExceptionHandler {
 
     @ExceptionHandler(Exception.class)
-    String handlerException(Exception e){
-        System.out.println("========-->"+e);
-        return e.getMessage();
-    }
-   @ExceptionHandler(MissingServletRequestParameterException.class)
-   ResponseEntity<ErrorResponse> handlerMissingServletRequestParameterException(MissingServletRequestParameterException e){
+    ResponseEntity<ErrorResponse> handleException(Exception e){
         ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setStatus(HttpStatus.BAD_REQUEST.name());
+        errorResponse.setError(GENERIC_ERROR);
+        errorResponse.setMessage(e.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+   @ExceptionHandler(MissingServletRequestParameterException.class)
+   ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(MissingServletRequestParameterException e){
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setStatus(HttpStatus.BAD_REQUEST.name());
         errorResponse.setError(MISSING_PARAMETER_ERROR);
-        errorResponse.setErrorMessage(MISSING_PARAMETER_ERROR_MESSAGE);
+        errorResponse.setMessage(MISSING_PARAMETER_ERROR_MESSAGE);
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(InvalidInputException.class)
-    ResponseEntity<ErrorResponse> handlerInvalidInputException(InvalidInputException e){
+    ResponseEntity<ErrorResponse> handleInvalidInputException(InvalidInputException e){
         ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.setStatus(HttpStatus.BAD_REQUEST.name());
         errorResponse.setError(INVALID_INPUT_ERROR);
-        errorResponse.setErrorMessage(e.getMessage());
+        errorResponse.setMessage(e.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 }

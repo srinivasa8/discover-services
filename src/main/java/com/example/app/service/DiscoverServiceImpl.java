@@ -1,6 +1,7 @@
 package com.example.app.service;
 
 import com.example.app.common.JobStatus;
+import com.example.app.exception.InvalidInputException;
 import com.example.app.models.EC2InstanceDetailModel;
 import com.example.app.models.S3BucketDetailModel;
 import com.example.app.models.S3BucketFileDetailModel;
@@ -9,6 +10,8 @@ import com.example.app.repositories.EC2InstanceDetailModelRepository;
 import com.example.app.repositories.S3BucketDetailModelRepository;
 import com.example.app.repositories.S3BucketFileDetailModelRepository;
 import com.example.app.repositories.TaskDetailModelRepository;
+import com.example.app.service.client.DiscoverEc2InstancesService;
+import com.example.app.service.client.DiscoverS3BucketsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,11 +59,11 @@ public class DiscoverServiceImpl implements DiscoverService{
     public int discoverServices(List<String> services) throws Exception {
         log.info("Started discoverServices for services : {} ", services);
         if(CollectionUtils.isEmpty(services)){
-            throw new Exception("Input is empty! Please provide both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+            throw new InvalidInputException("Input is empty! Please provide both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
         }
         boolean isInputInvalid = services.stream().anyMatch(s-> !ACCEPTABLE_SERVICE_LIST.contains(s.toUpperCase()));
         if(isInputInvalid){
-            throw new Exception("Input contains invalid value! Please use both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+            throw new InvalidInputException("Input contains invalid value! Please use both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
         }
         //Removing duplicate values to avoid processing the same service multiple times
         List<String> serviceList = services.stream().map(s -> s.toUpperCase()).distinct().toList();
@@ -87,7 +90,7 @@ public class DiscoverServiceImpl implements DiscoverService{
     public String getJobResult(int jobId) throws Exception {
         log.info("Started getJobResult for jobId : {} ", jobId);
         if (jobId <= 0) {
-            throw new Exception("Input jobId is invalid!");
+            throw new InvalidInputException("Input jobId is invalid!");
         }
         String status = null;
         try {
@@ -110,10 +113,10 @@ public class DiscoverServiceImpl implements DiscoverService{
     public List<String> getDiscoveryResult(String service) throws Exception {
         log.info("Started getDiscoveryResult for service : {}", service);
         if (!StringUtils.hasLength(service)) {
-            throw new Exception("Input is empty! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+            throw new InvalidInputException("Input is empty! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
         }
         if (!ACCEPTABLE_SERVICE_LIST.contains(service.toUpperCase())) {
-            throw new Exception("Input contains invalid value! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+            throw new InvalidInputException("Input contains invalid value! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
         }
         List<String> resultList = new ArrayList<>();
         try {
@@ -148,7 +151,7 @@ public class DiscoverServiceImpl implements DiscoverService{
     public int getS3BucketObjects(String bucketName) throws Exception {
         log.info("Started getS3BucketObjects for bucketName : {}", bucketName);
         if (!StringUtils.hasLength(bucketName)) {
-            throw new Exception("Given bucketName is empty! Please provide an valid bucket name.");
+            throw new InvalidInputException("Given bucketName is empty! Please provide an valid bucket name.");
         }
         try {
             int jobId = generateNewTaskRecord("getS3BucketObjects");
@@ -166,7 +169,7 @@ public class DiscoverServiceImpl implements DiscoverService{
     public int getS3BucketObjectCount(String bucketName) throws Exception {
         log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
         if (!StringUtils.hasLength(bucketName)) {
-            throw new Exception("Given bucketName is empty! Please provide an valid bucket name.");
+            throw new InvalidInputException("Given bucketName is empty! Please provide an valid bucket name.");
         }
         try {
             return s3BucketFileDetailModelRepository.countByBucketName(bucketName);
@@ -181,7 +184,7 @@ public class DiscoverServiceImpl implements DiscoverService{
     public List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception {
         log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
         if (!StringUtils.hasLength(bucketName) || !StringUtils.hasLength(pattern)) {
-            throw new Exception("Given bucketName or pattern is empty! Please provide an valid bucket name and pattern.");
+            throw new InvalidInputException("Given bucketName or pattern is empty! Please provide an valid bucket name and pattern.");
         }
         List<String> fileNameList = new ArrayList<>();
         try {
@@ -215,17 +218,26 @@ public class DiscoverServiceImpl implements DiscoverService{
 
     private void saveInstances(List<Instance> instanceList){
         for(Instance instance : instanceList){
-            boolean isInstanceDetailExist  = ec2InstanceDetailModelRepository.existsByInstanceId(instance.instanceId());
-            if(!isInstanceDetailExist) {
+            Optional<EC2InstanceDetailModel> instanceModelOptional  = ec2InstanceDetailModelRepository.findByInstanceId(instance.instanceId());
+            if(!instanceModelOptional.isPresent()) {
                 EC2InstanceDetailModel instanceModel = new EC2InstanceDetailModel();
                 instanceModel.setInstanceId(instance.instanceId());
                 instanceModel.setImageId(instance.imageId());
                 instanceModel.setType(instance.instanceType().toString());
                 instanceModel.setState(instance.state().name().toString());
+                instanceModel.setMonitoringState(instance.monitoring().state().toString());
+                instanceModel.setLaunchDate(Date.from(instance.launchTime()));
                 ec2InstanceDetailModelRepository.save(instanceModel);
                 log.info("Inserted a record for EC2 instance with instanceId : {} ", instance.instanceId());
             } else{
-                log.info("EC2 instance with instanceId : {}, is already present in DB, So skipping inserting it!", instance.instanceId());
+                EC2InstanceDetailModel instanceModel = instanceModelOptional.get();
+                instanceModel.setImageId(instance.imageId());
+                instanceModel.setType(instance.instanceType().toString());
+                instanceModel.setState(instance.state().name().toString());
+                instanceModel.setMonitoringState(instance.monitoring().state().toString());
+                instanceModel.setLaunchDate(Date.from(instance.launchTime()));
+                ec2InstanceDetailModelRepository.save(instanceModel);
+                log.info("Updating EC2 instance with instanceId : {}, as it is already present in DB!", instance.instanceId());
             }
         }
     }
@@ -301,6 +313,7 @@ public class DiscoverServiceImpl implements DiscoverService{
             if(!isBucketDetailExist){
                 S3BucketDetailModel  s3BucketDetailModel = new S3BucketDetailModel();
                 s3BucketDetailModel.setBucketName(bucket.name());
+                s3BucketDetailModel.setCreatedDate(Date.from(bucket.creationDate()));
                 s3BucketDetailModelRepository.save(s3BucketDetailModel);
                 log.info("Inserted a record for s3 bucket with name : {} ", bucket.name());
             } else{

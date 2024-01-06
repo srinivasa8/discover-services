@@ -23,33 +23,39 @@ public class DiscoverServiceController {
     }
 
     @GetMapping("/getJobResult")
-    public ResponseEntity<String> getJobResult(@RequestParam(name = "jobId") int jobId) throws Exception{
+    public ResponseEntity<String> getJobResult(@RequestParam(name = "jobId") int jobId) throws Exception {
         String result = discoverService.getJobResult(jobId);
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/getDiscoveryResult")
-    public List<String> getDiscoveryResult(@RequestParam(name = "service") String service) throws Exception {
-        return discoverService.getDiscoveryResult(service);
+    public ResponseEntity<List<String>> getDiscoveryResult(@RequestParam(name = "service") String service) throws Exception {
+        List<String> resultList = discoverService.getDiscoveryResult(service);
+        return new ResponseEntity<>(resultList, HttpStatus.OK);
     }
 
     @GetMapping("/getS3BucketObjects")
-    public int getS3BucketObjects(@RequestParam(name = "bucketName") String bucketName) throws Exception  {
-        return discoverService.getS3BucketObjects(bucketName);
+    public ResponseEntity<Integer> getS3BucketObjects(@RequestParam(name = "bucketName") String bucketName) throws Exception {
+        int jobId = discoverService.getS3BucketObjects(bucketName);
+        return new ResponseEntity<>(jobId, HttpStatus.OK);
     }
 
     @GetMapping("/getS3BucketObjectCount")
-    public int getS3BucketObjectCount(@RequestParam(name = "bucketName") String bucketName) throws Exception  {
-        return discoverService.getS3BucketObjectCount(bucketName);
+    public ResponseEntity<Integer> getS3BucketObjectCount(@RequestParam(name = "bucketName") String bucketName) throws Exception {
+        int count = discoverService.getS3BucketObjectCount(bucketName);
+        return new ResponseEntity<>(count, HttpStatus.OK);
     }
 
     @GetMapping("/getS3BucketObjectlike")
-    public List<String> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) throws Exception {
-        return discoverService.getS3BucketObjectlike(bucketName, pattern);
+    public ResponseEntity<List<String>> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) throws Exception {
+        List<String> s3objectList = discoverService.getS3BucketObjectlike(bucketName, pattern);
+        return new ResponseEntity<>(s3objectList, HttpStatus.OK);
     }
 
     @PostMapping("/getS3BucketObjectlikeV2")
-    public List<String> getS3BucketObjectlikeV2(@RequestBody Request request) throws Exception  {
-        return discoverService.getS3BucketObjectlike(request.getBucketName(), request.getPattern());
+    public ResponseEntity<List<String>> getS3BucketObjectlikeV2(@RequestBody Request request) throws Exception {
+        List<String> s3objectList = discoverService.getS3BucketObjectlike(request.getBucketName(), request.getPattern());
+        return new ResponseEntity<>(s3objectList, HttpStatus.OK);
     }
+
 }

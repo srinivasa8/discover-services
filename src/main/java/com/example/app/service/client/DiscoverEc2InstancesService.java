@@ -1,4 +1,4 @@
-package com.example.app.service;
+package com.example.app.service.client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
