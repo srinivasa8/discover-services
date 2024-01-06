@@ -19,7 +19,7 @@ import java.util.Date;
 @Getter
 @Setter
 @RequiredArgsConstructor
-@Table(schema = "dbsd", name = "EC2_INSTANCE_DETAIL")
+@Table(schema = "DSDB", name = "EC2_INSTANCE_DETAIL")
 public class EC2InstanceDetailModel {
 
     @Id

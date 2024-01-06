@@ -13,7 +13,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(schema = "dbsd", name = "TASK_DETAIL")
+@Table(schema = "DSDB", name = "TASK_DETAIL")
 public class TaskDetailModel {
 
     @Id

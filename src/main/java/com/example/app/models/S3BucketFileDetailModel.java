@@ -16,7 +16,7 @@ import java.util.Date;
 @Getter
 @Setter
 @Entity
-@Table(schema = "dbsd", name = "S3_BUCKET_FILE_DETAIL")
+@Table(schema = "DSDB", name = "S3_BUCKET_FILE_DETAIL")
 public class S3BucketFileDetailModel {
 
     @Id
