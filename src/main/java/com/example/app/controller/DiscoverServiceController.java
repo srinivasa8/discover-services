@@ -3,6 +3,8 @@ package com.example.app.controller;
 import com.example.app.common.Request;
 import com.example.app.service.DiscoverService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,37 +17,39 @@ public class DiscoverServiceController {
     private DiscoverService discoverService;
 
     @PostMapping("/discoverServices")
-    public int discoverServices(@RequestBody List<String> services) {
-        return discoverService.discoverServices(services);
+    public ResponseEntity<Integer> discoverServices(@RequestBody List<String> services) throws Exception {
+        int jobId = discoverService.discoverServices(services);
+        return new ResponseEntity<>(jobId, HttpStatus.OK);
     }
 
     @GetMapping("/getJobResult")
-    public String getJobResult(@RequestParam(name = "jobId") int jobId) {
-        return discoverService.getJobResult(jobId);
+    public ResponseEntity<String> getJobResult(@RequestParam(name = "jobId") int jobId) throws Exception{
+        String result = discoverService.getJobResult(jobId);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     @GetMapping("/getDiscoveryResult")
-    public List<String> getDiscoveryResult(@RequestParam(name = "service") String service) {
+    public List<String> getDiscoveryResult(@RequestParam(name = "service") String service) throws Exception {
         return discoverService.getDiscoveryResult(service);
     }
 
     @GetMapping("/getS3BucketObjects")
-    public int getS3BucketObjects(@RequestParam(name = "bucketName") String bucketName) {
+    public int getS3BucketObjects(@RequestParam(name = "bucketName") String bucketName) throws Exception  {
         return discoverService.getS3BucketObjects(bucketName);
     }
 
     @GetMapping("/getS3BucketObjectCount")
-    public int getS3BucketObjectCount(@RequestParam(name = "bucketName") String bucketName) {
+    public int getS3BucketObjectCount(@RequestParam(name = "bucketName") String bucketName) throws Exception  {
         return discoverService.getS3BucketObjectCount(bucketName);
     }
 
     @GetMapping("/getS3BucketObjectlike")
-    public List<String> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) {
+    public List<String> getS3BucketObjectlike(@RequestParam(name = "bucketName") String bucketName, @RequestParam(name = "pattern") String pattern) throws Exception {
         return discoverService.getS3BucketObjectlike(bucketName, pattern);
     }
 
     @PostMapping("/getS3BucketObjectlikeV2")
-    public List<String> getS3BucketObjectlikeV2(@RequestBody Request request) {
+    public List<String> getS3BucketObjectlikeV2(@RequestBody Request request) throws Exception  {
         return discoverService.getS3BucketObjectlike(request.getBucketName(), request.getPattern());
     }
 }

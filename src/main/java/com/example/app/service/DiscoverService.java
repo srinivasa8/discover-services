@@ -4,15 +4,15 @@ import java.util.List;
 
 public interface DiscoverService {
 
-    int discoverServices(List<String> services);
+    int discoverServices(List<String> services) throws Exception;
 
-    String getJobResult(int jobId);
+    String getJobResult(int jobId) throws Exception;
 
-    List<String> getDiscoveryResult(String service);
+    List<String> getDiscoveryResult(String service) throws Exception;
 
-    int getS3BucketObjects(String bucketName);
+    int getS3BucketObjects(String bucketName) throws Exception;
 
-    int getS3BucketObjectCount(String bucketName);
+    int getS3BucketObjectCount(String bucketName) throws Exception;
 
-    List<String> getS3BucketObjectlike(String bucketName, String pattern);
+    List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception;
 }

@@ -26,6 +26,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import static com.example.app.common.Constants.ACCEPTABLE_SERVICE_LIST;
+
 @Service
 @Slf4j
 public class DiscoverServiceImpl implements DiscoverService{
@@ -51,84 +53,103 @@ public class DiscoverServiceImpl implements DiscoverService{
     private Executor executor;
 
     @Override
-    public int discoverServices(List<String> services) {
+    public int discoverServices(List<String> services) throws Exception {
+        log.info("Started discoverServices for services : {} ", services);
+        if(CollectionUtils.isEmpty(services)){
+            throw new Exception("Input is empty! Please provide both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+        }
+        boolean isInputInvalid = services.stream().anyMatch(s-> !ACCEPTABLE_SERVICE_LIST.contains(s.toUpperCase()));
+        if(isInputInvalid){
+            throw new Exception("Input contains invalid value! Please use both or any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+        }
+        //Removing duplicate values to avoid processing the same service multiple times
+        List<String> serviceList = services.stream().map(s -> s.toUpperCase()).distinct().toList();
+        log.info("Services after filtering duplicates : {} ", serviceList);
         try {
-            if(CollectionUtils.isEmpty(services)){
-                log.info("Input service list is empty!");
-                //trow new Exception("input empty!");
-                return 0;
-            }
-            if(!services.contains("EC2") && !services.contains("S3")){
-                log.info("Invalid input!");
-                return 0;
-            }
             int jobId = generateNewTaskRecord("DiscoverServices");
-            for (String service : services) {
+            for (String service : serviceList) {
                 if (service.equalsIgnoreCase("EC2")) {
                     CompletableFuture.runAsync(() -> processEC2Discovery(jobId), executor);
                 }
                 if (service.equalsIgnoreCase("S3")) {
                     CompletableFuture.runAsync(() -> processS3BucketDiscovery(jobId), executor);
                 }
-                log.info("Task running in background with id :" + jobId);
             }
+            log.info("Task scheduled and running in the background with jobId :" + jobId);
             return jobId;
         } catch (Exception e) {
-            log.info("Task happened during discoverServices for the services : {} ", services, e);
+            log.info("An error happened during discoverServices for the services : {} ", services, e);
+            throw new Exception("An error occurred while discovering services : " + services + ", Please try again after sometime!");
         }
-        return 0;
     }
 
     @Override
-    public String getJobResult(int jobId) {
-        String status = "No job found";
+    public String getJobResult(int jobId) throws Exception {
+        log.info("Started getJobResult for jobId : {} ", jobId);
+        if (jobId <= 0) {
+            throw new Exception("Input jobId is invalid!");
+        }
+        String status = null;
         try {
             Optional<TaskDetailModel> taskDetailModelOptional = taskDetailModelRepository.findById(jobId);
             if (taskDetailModelOptional.isPresent()) {
                 status = taskDetailModelOptional.get().getStatus();
+                log.info("Result found for jobId : {} is : {}", jobId, status);
+            } else{
+                status = "No Job found with the requested jobId : " + jobId;
+                log.info("No Job found with the requested jobId : {}", jobId);
             }
-            log.info("Status for job with id : {} is : {}", jobId, status);
+            return status;
         } catch (Exception e) {
-            status= "Error happened while finding job result for jobId :"+ jobId;
             log.error("Exception happened while getting job result for jobId : {} ", jobId, e);
+            throw new Exception("An Error happened while finding the job result for jobId : " + jobId + ", please try again after sometime!");
         }
-        return status;
     }
 
     @Override
-    public List<String> getDiscoveryResult(String service) {
+    public List<String> getDiscoveryResult(String service) throws Exception {
         log.info("Started getDiscoveryResult for service : {}", service);
+        if (!StringUtils.hasLength(service)) {
+            throw new Exception("Input is empty! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+        }
+        if (!ACCEPTABLE_SERVICE_LIST.contains(service.toUpperCase())) {
+            throw new Exception("Input contains invalid value! Please provide any one of the following : " + ACCEPTABLE_SERVICE_LIST);
+        }
         List<String> resultList = new ArrayList<>();
         try {
             if (service.equalsIgnoreCase("EC2")) {
                 resultList = getAllEC2InstanceIds();
-            } else if (service.equalsIgnoreCase("S3")){
+            } else if (service.equalsIgnoreCase("S3")) {
                 resultList = getAllS3BucketNames();
             }
+            log.info("Results fetched for {} are : {} ", service, resultList);
+            return resultList;
         } catch (Exception e) {
-            log.error("Exception happened during getDiscoveryResult for service : {} ", service);
+            log.error("Exception happened during getDiscoveryResult for service : {} ", service, e);
+            throw new Exception("An error occurred while getting discovery result for service : " + service + ", Please try again after sometime!");
         }
-        log.info("Results fetched for {} are : {} ", service, resultList);
-        return resultList;
     }
 
     private List<String> getAllEC2InstanceIds(){
         List<String> instnceIdList= new ArrayList<>();
         List<EC2InstanceDetailModel> ec2InstanceDetailModelList = ec2InstanceDetailModelRepository.findAll();
-        instnceIdList = ec2InstanceDetailModelList.stream().map(i->i.getInstanceId()).collect(Collectors.toList());
+        instnceIdList = ec2InstanceDetailModelList.stream().map(i -> i.getInstanceId()).collect(Collectors.toList());
         return instnceIdList;
     }
 
     private List<String> getAllS3BucketNames(){
         List<String> bucketList= new ArrayList<>();
         List<S3BucketDetailModel> s3BucketDetailModellList = s3BucketDetailModelRepository.findAll();
-        bucketList = s3BucketDetailModellList.stream().map(b->b.getBucketName()).collect(Collectors.toList());
+        bucketList = s3BucketDetailModellList.stream().map(b -> b.getBucketName()).collect(Collectors.toList());
         return bucketList;
     }
 
     @Override
-    public int getS3BucketObjects(String bucketName) {
+    public int getS3BucketObjects(String bucketName) throws Exception {
         log.info("Started getS3BucketObjects for bucketName : {}", bucketName);
+        if (!StringUtils.hasLength(bucketName)) {
+            throw new Exception("Given bucketName is empty! Please provide an valid bucket name.");
+        }
         try {
             int jobId = generateNewTaskRecord("getS3BucketObjects");
             CompletableFuture.runAsync(() -> processGetS3Objects(jobId, bucketName), executor);
@@ -136,45 +157,54 @@ public class DiscoverServiceImpl implements DiscoverService{
             return jobId;
         } catch (Exception e) {
             log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+            throw new Exception("An error occurred while scheduling job for discovering s3 objects for bucketName : "
+                    + bucketName + ", Please try again after sometime!");
         }
-        return 0;
     }
 
     @Override
-    public int getS3BucketObjectCount(String bucketName) {
-        log.info("Started getS3BucketObjectCount for the bucketName : {} ",bucketName);
+    public int getS3BucketObjectCount(String bucketName) throws Exception {
+        log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
+        if (!StringUtils.hasLength(bucketName)) {
+            throw new Exception("Given bucketName is empty! Please provide an valid bucket name.");
+        }
         try {
             return s3BucketFileDetailModelRepository.countByBucketName(bucketName);
-            //return count;
         } catch (Exception e) {
             log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+            throw new Exception("An error occurred while getting object count for bucketName : "
+                    + bucketName + ", Please try again after sometime!");
         }
-        return 0;
     }
 
     @Override
-    public List<String> getS3BucketObjectlike(String bucketName, String pattern) {
-        List<String> fileNameList = new ArrayList<>();
+    public List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception {
         log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
+        if (!StringUtils.hasLength(bucketName) || !StringUtils.hasLength(pattern)) {
+            throw new Exception("Given bucketName or pattern is empty! Please provide an valid bucket name and pattern.");
+        }
+        List<String> fileNameList = new ArrayList<>();
         try {
             List<S3BucketFileDetailModel> s3BucketFileDetailModelList = s3BucketFileDetailModelRepository.findByBucketNameAndFileNameLike(bucketName, pattern);
             fileNameList = s3BucketFileDetailModelList.stream().map(s -> s.getFileName()).collect(Collectors.toList());
+            log.info("Files found for bucketName : {} and matching pattern : {} are : {}", bucketName, pattern, fileNameList);
+            return fileNameList;
         } catch (Exception e) {
             log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+            throw new Exception("An error occurred while getting objects for bucketName : "
+                    + bucketName + " with pattern : " + pattern + ", Please try again after sometime!");
         }
-        log.info("Files found for bucketName : {} and matching pattern : {} are : {}", bucketName,pattern,fileNameList);
-        return fileNameList;
     }
 
     private void processEC2Discovery(int jobId){
+        log.info("Started processEC2Discovery task in background for jobId : {}", jobId);
         String status = JobStatus.Failed.toString();
         String failureDetails = null;
         try {
-            Thread.sleep(3000);
             List<Instance> instanceList = discoverEc2InstancesService.getAllEC2Instances();
             saveInstances(instanceList);
             status = JobStatus.Success.toString();
-            log.info("Task completed in background with id : {}", jobId);
+            log.info("processEC2Discovery task completed in background for jobId : {}", jobId);
         } catch (Exception e){
             log.error("Exception occurred while EC2 discovery for job id : {} ", jobId, e);
             failureDetails = "EC2 discovery failed with error: " + e.getMessage();
@@ -201,14 +231,14 @@ public class DiscoverServiceImpl implements DiscoverService{
     }
 
     private void processS3BucketDiscovery(int jobId){
+        log.info("Started ProcessS3BucketDiscovery task in background for jobId : {}", jobId);
         String status = JobStatus.Failed.toString();
         String failureDetails = null;
         try {
-            Thread.sleep(3000);
             List<Bucket> bucketList = discoverS3BucketsService.getAllS3Buckets();
             saveS3BucketDetails(bucketList);
             status = JobStatus.Success.toString();
-            log.info("ProcessS3BucketDiscovery task completed in background with job id : {} ", jobId);
+            log.info("ProcessS3BucketDiscovery task completed in background for job id : {} ", jobId);
         } catch (Exception e){
             log.error("Exception occurred while S3 discovery for job id : {} ", jobId, e);
             failureDetails = "S3 Discovery failed with error: " + e.getMessage();
@@ -221,7 +251,6 @@ public class DiscoverServiceImpl implements DiscoverService{
         String status = JobStatus.Failed.toString();
         String failureDetails = null;
         try {
-            Thread.sleep(3000);
             List<S3Object> s3ObjectList = discoverS3BucketsService.getS3BucketObjectsByBucket(bucketName);
             saveS3BucketObjectDetails(s3ObjectList, bucketName);
             status = JobStatus.Success.toString();
