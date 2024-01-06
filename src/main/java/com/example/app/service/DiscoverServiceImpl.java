@@ -150,7 +150,7 @@ public class DiscoverServiceImpl implements DiscoverService{
     @Override
     public int getS3BucketObjects(String bucketName) throws Exception {
         log.info("Started getS3BucketObjects for bucketName : {}", bucketName);
-        if (!StringUtils.hasLength(bucketName)) {
+        if (!StringUtils.hasLength(bucketName) || bucketName.isBlank()) {
             throw new InvalidInputException("Given bucketName is empty! Please provide an valid bucket name.");
         }
         try {
@@ -168,13 +168,13 @@ public class DiscoverServiceImpl implements DiscoverService{
     @Override
     public int getS3BucketObjectCount(String bucketName) throws Exception {
         log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
-        if (!StringUtils.hasLength(bucketName)) {
+        if (!StringUtils.hasLength(bucketName) || bucketName.isBlank()) {
             throw new InvalidInputException("Given bucketName is empty! Please provide an valid bucket name.");
         }
         try {
             return s3BucketFileDetailModelRepository.countByBucketName(bucketName);
         } catch (Exception e) {
-            log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+            log.error("Exception happened during getS3BucketObjectCount for the bucketName : {} ", bucketName, e);
             throw new Exception("An error occurred while getting object count for bucketName : "
                     + bucketName + ", Please try again after sometime!");
         }
@@ -182,8 +182,8 @@ public class DiscoverServiceImpl implements DiscoverService{
 
     @Override
     public List<String> getS3BucketObjectlike(String bucketName, String pattern) throws Exception {
-        log.info("Started getS3BucketObjectCount for the bucketName : {} ", bucketName);
-        if (!StringUtils.hasLength(bucketName) || !StringUtils.hasLength(pattern)) {
+        log.info("Started getS3BucketObjectlike for the bucketName : {} with pattern : {} ", bucketName, pattern);
+        if (!StringUtils.hasLength(bucketName) || bucketName.isBlank() || !StringUtils.hasLength(pattern) || pattern.isBlank()) {
             throw new InvalidInputException("Given bucketName or pattern is empty! Please provide an valid bucket name and pattern.");
         }
         List<String> fileNameList = new ArrayList<>();
@@ -193,7 +193,7 @@ public class DiscoverServiceImpl implements DiscoverService{
             log.info("Files found for bucketName : {} and matching pattern : {} are : {}", bucketName, pattern, fileNameList);
             return fileNameList;
         } catch (Exception e) {
-            log.error("Exception happened during getS3BucketObjects for the bucketName : {} ", bucketName, e);
+            log.error("Exception happened during getS3BucketObjectlike for the bucketName : {} with pattern : {}", bucketName, pattern, e);
             throw new Exception("An error occurred while getting objects for bucketName : "
                     + bucketName + " with pattern : " + pattern + ", Please try again after sometime!");
         }
