@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 @Slf4j
@@ -33,7 +34,7 @@ public class DiscoverEc2InstancesService {
     }
 
     void initializeEC2Client(){
-        Region region = Region.AP_SOUTH_1;
+        Region region = Region.of(Objects.requireNonNull(env.getProperty("application.aws.region")));
         AwsBasicCredentials awsCreds = AwsBasicCredentials.create(env.getProperty("application.aws.accesskey"),
                 env.getProperty("application.aws.secretkey"));
         ec2Client = Ec2Client.builder()

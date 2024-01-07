@@ -28,7 +28,7 @@ public class DiscoverS3BucketsService {
     }
 
     void initializeS3Client(){
-        Region region = Region.AP_SOUTH_1;
+        Region region = Region.of(env.getProperty("application.aws.region"));
         AwsBasicCredentials awsCreds = AwsBasicCredentials.create(env.getProperty("application.aws.accesskey"),
                 env.getProperty("application.aws.secretkey"));
         this.s3Client = S3Client.builder()
