@@ -31,6 +31,7 @@ This Spring Boot application has been developed as part of an assignment with th
       spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
       spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
  
+      application.aws.region=${APPLICATION_AWS_REGION}
       application.aws.accesskey=${APPLICATION_AWS_ACCESS_KEY}
       application.aws.secretkey=${{APPLICATION_AWS_SECRET_KEY}
       ```
