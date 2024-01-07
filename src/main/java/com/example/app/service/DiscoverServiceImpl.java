@@ -340,11 +340,14 @@ public class DiscoverServiceImpl implements DiscoverService{
 
     }
 
-    private void saveTaskDetail(int jobId, String status, String failureDetails) {
+    private synchronized void saveTaskDetail(int jobId, String status, String failureDetails) {
         Optional<TaskDetailModel> taskModelOptional = taskDetailModelRepository.findById(jobId);
         if(taskModelOptional.isPresent()){
             TaskDetailModel taskModel = taskModelOptional.get();
-            taskModel.setStatus(status);
+            //If task is already marked as failed from another thread , it shouldn't be changed to success again.
+            if(!taskModel.getStatus().equalsIgnoreCase(JobStatus.Failed.toString())){
+                taskModel.setStatus(status);
+            }
             String updatedFailureDetails = StringUtils.hasLength(taskModel.getFailureDetails()) ?
                     (taskModel.getFailureDetails() + " and " + failureDetails) : failureDetails;
             taskModel.setFailureDetails(updatedFailureDetails);
